@@ -56,18 +56,18 @@ public class RNSoundModule extends ReactContextBaseJavaModule {
     if (module.category != null) {
       Integer category = null;
       switch (module.category) {
-        case "Playback":
-          category = AudioManager.STREAM_MUSIC;
-          break;
-        case "Ambient":
-          category = AudioManager.STREAM_NOTIFICATION;
-          break;
-        case "System":
-          category = AudioManager.STREAM_SYSTEM;
-          break;
-        default:
-          Log.e("RNSoundModule", String.format("Unrecognised category %s", module.category));
-          break;
+      case "Playback":
+        category = AudioManager.STREAM_MUSIC;
+        break;
+      case "Ambient":
+        category = AudioManager.STREAM_NOTIFICATION;
+        break;
+      case "System":
+        category = AudioManager.STREAM_SYSTEM;
+        break;
+      default:
+        Log.e("RNSoundModule", String.format("Unrecognised category %s", module.category));
+        break;
       }
       if (category != null) {
         player.setAudioStreamType(category);
@@ -79,7 +79,8 @@ public class RNSoundModule extends ReactContextBaseJavaModule {
 
       @Override
       public synchronized void onPrepared(MediaPlayer mp) {
-        if (callbackWasCalled) return;
+        if (callbackWasCalled)
+          return;
         callbackWasCalled = true;
 
         module.playerPool.put(key, mp);
@@ -87,7 +88,7 @@ public class RNSoundModule extends ReactContextBaseJavaModule {
         props.putDouble("duration", mp.getDuration() * .001);
         try {
           callback.invoke(NULL, props);
-        } catch(RuntimeException runtimeException) {
+        } catch (RuntimeException runtimeException) {
           // The callback was already invoked
           Log.e("RNSoundModule", "Exception", runtimeException);
         }
@@ -100,14 +101,15 @@ public class RNSoundModule extends ReactContextBaseJavaModule {
 
       @Override
       public synchronized boolean onError(MediaPlayer mp, int what, int extra) {
-        if (callbackWasCalled) return true;
+        if (callbackWasCalled)
+          return true;
         callbackWasCalled = true;
         try {
           WritableMap props = Arguments.createMap();
           props.putInt("what", what);
           props.putInt("extra", extra);
           callback.invoke(props, NULL);
-        } catch(RuntimeException runtimeException) {
+        } catch (RuntimeException runtimeException) {
           // The callback was already invoked
           Log.e("RNSoundModule", "Exception", runtimeException);
         }
@@ -143,23 +145,23 @@ public class RNSoundModule extends ReactContextBaseJavaModule {
       Log.i("RNSoundModule", fileName);
       try {
         mediaPlayer.setDataSource(fileName);
-      } catch(IOException e) {
+      } catch (IOException e) {
         Log.e("RNSoundModule", "Exception", e);
         return null;
       }
       return mediaPlayer;
     }
 
-    if (fileName.startsWith("asset:/")){
-        try {
-            AssetFileDescriptor descriptor = this.context.getAssets().openFd(fileName.replace("asset:/", ""));
-            mediaPlayer.setDataSource(descriptor.getFileDescriptor(), descriptor.getStartOffset(), descriptor.getLength());
-            descriptor.close();
-            return mediaPlayer;
-        } catch(IOException e) {
-            Log.e("RNSoundModule", "Exception", e);
-            return null;
-        }
+    if (fileName.startsWith("asset:/")) {
+      try {
+        AssetFileDescriptor descriptor = this.context.getAssets().openFd(fileName.replace("asset:/", ""));
+        mediaPlayer.setDataSource(descriptor.getFileDescriptor(), descriptor.getStartOffset(), descriptor.getLength());
+        descriptor.close();
+        return mediaPlayer;
+      } catch (IOException e) {
+        Log.e("RNSoundModule", "Exception", e);
+        return null;
+      }
     }
 
     File file = new File(fileName);
@@ -181,30 +183,37 @@ public class RNSoundModule extends ReactContextBaseJavaModule {
     if (player.isPlaying()) {
       return;
     }
-    player.setOnCompletionListener(new OnCompletionListener() {
-      boolean callbackWasCalled = false;
 
+    boolean callbackWasCalled = false;
+
+    player.setOnCompletionListener(new OnCompletionListener() {
       @Override
       public synchronized void onCompletion(MediaPlayer mp) {
         if (!mp.isLooping()) {
-          if (callbackWasCalled) return;
+          if (callbackWasCalled)
+            return;
           callbackWasCalled = true;
           try {
             callback.invoke(true);
           } catch (Exception e) {
-              //Catches the exception: java.lang.RuntimeException·Illegal callback invocation from native module
+            //Catches the exception: java.lang.RuntimeException·Illegal callback invocation from native module
           }
         }
       }
     });
     player.setOnErrorListener(new OnErrorListener() {
-      boolean callbackWasCalled = false;
-
       @Override
       public synchronized boolean onError(MediaPlayer mp, int what, int extra) {
-        if (callbackWasCalled) return true;
+        if (callbackWasCalled)
+          return true;
         callbackWasCalled = true;
-        callback.invoke(false);
+
+        try {
+          callback.invoke(false);
+        } catch (Exception e) {
+          //Catches the exception: java.lang.RuntimeException·Illegal callback invocation from native module
+        }
+
         return true;
       }
     });
@@ -260,7 +269,8 @@ public class RNSoundModule extends ReactContextBaseJavaModule {
     try {
       AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
 
-      callback.invoke(NULL, (float) audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) / audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
+      callback.invoke(NULL, (float) audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+          / audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
     } catch (Exception error) {
       WritableMap e = Arguments.createMap();
       e.putInt("code", -1);
@@ -297,7 +307,7 @@ public class RNSoundModule extends ReactContextBaseJavaModule {
   public void setCurrentTime(final Integer key, final Float sec) {
     MediaPlayer player = this.playerPool.get(key);
     if (player != null) {
-      player.seekTo((int)Math.round(sec * 1000));
+      player.seekTo((int) Math.round(sec * 1000));
     }
   }
 
@@ -317,7 +327,7 @@ public class RNSoundModule extends ReactContextBaseJavaModule {
     MediaPlayer player = this.playerPool.get(key);
     if (player != null) {
       player.setAudioStreamType(AudioManager.STREAM_MUSIC);
-      AudioManager audioManager = (AudioManager)this.context.getSystemService(this.context.AUDIO_SERVICE);
+      AudioManager audioManager = (AudioManager) this.context.getSystemService(this.context.AUDIO_SERVICE);
       audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
       audioManager.setSpeakerphoneOn(speaker);
     }
